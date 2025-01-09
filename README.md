@@ -63,41 +63,6 @@ Now, you can start the Laravel development server to run the application:
 php artisan serve
 ```
 
-## API Endpoints
-
-1. User Registration
-POST /api/register
-
-Request body:
-name: string (required)
-email: string (required, unique)
-password: string (required, confirmed)
-
-2. User Login
-POST /api/login
-
-Request body:
-email: string (required)
-password: string (required)
-
-3. Logout
-POST /api/logout
-
-Requires authentication (pass token in the header Authorization: Bearer {token})
-
-4. Posts
-GET /api/posts - Get all posts with pagination and optional search
-GET /api/posts/{slug} - Get a specific post by slug
-POST /api/posts - Create a new post (authenticated)
-PUT /api/posts/{id} - Update an existing post
-DELETE /api/posts/{id} - Delete a post
-
-5. Comments
-GET /api/posts/{id}/comments - Get all comments for a post
-POST /api/posts/{id}/comments - Add a comment to a post
-PUT /api/comments/{id} - Update an existing comment
-DELETE /api/comments/{id} - Delete a comment
-
 
 ## Architectural Decisions
 1. Separation of Concerns with Repository Pattern
