@@ -52,7 +52,14 @@ class PostController extends Controller
     public function show($slug)
     {
         try {
-            $post = Post::where('slug', $slug)->firstOrFail();
+            $post = Post::where('slug', $slug)->first();
+
+            if (!$post) {
+                return response()->json([
+                    'message' => 'Post not found',
+                ], 404);
+            }
+
             $post->load('author');
 
             return response()->json([
