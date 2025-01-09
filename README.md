@@ -7,60 +7,113 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# API Blog with Authentication (Laravel)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This project is a simple API for managing blog posts and comments with user authentication (registration, login, logout). The API follows RESTful principles and is built using Laravel 11.x, leveraging modern design patterns for scalability and maintainability.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Setup Instructions
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 1. Clone the Repository
 
-## Learning Laravel
+Start by cloning the repository to your local machine.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```bash
+git clone https://github.com/hafizhzikry24/SPA-BE_Alturian_test.git
+cd SPA-BE_Alturian_test
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 2. Install Dependencies
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+composer install
+```
 
-## Laravel Sponsors
+### 3. Set Up Environment Variables
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+cp .env.example .env
+```
 
-### Premium Partners
+Edit the .env file and update the following variables:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+DB_DATABASE=your_database_name
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-## Contributing
+### 4. App Key
+Generate the application key by running the following command:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan key:generate
+```
 
-## Code of Conduct
+### 5. Migrate the Database
+Run the Laravel migration command to create the necessary database tables for the application.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan migrate
+```
 
-## Security Vulnerabilities
+### 6. Run the Application
+Now, you can start the Laravel development server to run the application:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan serve
+```
 
-## License
+## API Endpoints
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. User Registration
+POST /api/register
+
+Request body:
+name: string (required)
+email: string (required, unique)
+password: string (required, confirmed)
+
+2. User Login
+POST /api/login
+
+Request body:
+email: string (required)
+password: string (required)
+
+3. Logout
+POST /api/logout
+
+Requires authentication (pass token in the header Authorization: Bearer {token})
+
+4. Posts
+GET /api/posts - Get all posts with pagination and optional search
+GET /api/posts/{slug} - Get a specific post by slug
+POST /api/posts - Create a new post (authenticated)
+PUT /api/posts/{id} - Update an existing post
+DELETE /api/posts/{id} - Delete a post
+
+5. Comments
+GET /api/posts/{id}/comments - Get all comments for a post
+POST /api/posts/{id}/comments - Add a comment to a post
+PUT /api/comments/{id} - Update an existing comment
+DELETE /api/comments/{id} - Delete a comment
+
+
+## Architectural Decisions
+1. Separation of Concerns with Repository Pattern
+We adopted the Repository Pattern to keep business logic separate from the controller. This allows us to easily extend the application in the future without bloating the controllers. All database operations are handled by the repository layer, which makes the codebase more maintainable.
+2. Use of Traits for Reusable Response Logic
+The ResponseMessageTrait is used to standardize the structure of API responses across the application. This ensures that all responses, whether successful or erroneous, follow a consistent format, making it easier to handle on the frontend.
+3. JWT for API Authentication
+We are using Laravel Sanctum for API authentication, which is a simple and lightweight solution for token-based authentication. This is particularly suited for SPAs (Single Page Applications) and mobile applications.
+4. Paginated Responses
+Pagination has been implemented for posts and comments to avoid performance issues when dealing with large datasets. The API returns paginated data along with metadata (current page, total pages, etc.) to help the frontend display the data accordingly.
+5. Input Validation
+Input validation is done using Laravel's Validator class, ensuring that all data received via API requests is well-formed and meets the necessary constraints. This reduces the risk of errors and malicious data being saved into the database.
+6. Error Handling
+Error handling is done in a centralized manner using a custom trait (ResponseMessageTrait). This makes the code cleaner and ensures that error messages are returned consistently in the same format.
+7. Security Considerations
+Passwords are hashed using bcrypt (Laravel's default) before storing them in the database.
+API endpoints that require authentication are protected by token validation (via Laravel Sanctum).
+Input sanitization and validation are implemented to prevent SQL injection and other forms of malicious input.
+
