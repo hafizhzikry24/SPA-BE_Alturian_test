@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
- public function register(Request $request)
+    public function register(Request $request)
     {
         try {
             $validator = Validator::make($request->all(), [
@@ -87,14 +87,14 @@ class AuthController extends Controller
     }
 
 
-    public function logout() {
+    public function logout()
+    {
         try {
             Auth::guard('api')->user()->currentAccessToken()->delete();
 
             return response()->json([
                 'message' => 'Logged out successfully'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'An error occurred during logout',
@@ -102,5 +102,4 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
 }

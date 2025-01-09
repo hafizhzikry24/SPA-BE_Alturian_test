@@ -7,6 +7,7 @@ use App\Models\Comment;
 use App\Models\Post;
 use Dotenv\Exception\ValidationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CommentController extends Controller
 {

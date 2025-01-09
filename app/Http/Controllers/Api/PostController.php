@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Post;
 use Dotenv\Exception\ValidationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Routing\Controllers\Middleware;
 
 class PostController extends Controller
@@ -15,25 +16,30 @@ class PostController extends Controller
     {
         try {
             $search = $request->input('search');
+            $perPage = $request->input('per_page', 5);
 
             $posts = Post::query();
 
             if ($search) {
-                $posts->where(function($query) use ($search) {
+                $posts->where(function ($query) use ($search) {
                     $query->where('title', 'like', "%{$search}%")
-                          ->orWhere('body', 'like', "%{$search}%");
+                        ->orWhere('body', 'like', "%{$search}%");
                 });
             }
 
             $posts = $posts->with('author')
-                           ->orderBy('created_at', 'desc')
-                           ->get();
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
 
             return response()->json([
                 'message' => 'Posts retrieved successfully',
-                'data' => $posts
-            ]);
+                'data' => $posts,
+                'current_page' => $posts->currentPage(),
+                'last_page' => $posts->lastPage(),
+                'per_page' => $posts->perPage(),
+                'total' => $posts->total(),
 
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An error occurred while retrieving posts',
@@ -42,9 +48,11 @@ class PostController extends Controller
         }
     }
 
-    public function show(Post $post)
+
+    public function show($slug)
     {
         try {
+            $post = Post::where('slug', $slug)->firstOrFail();
             $post->load('author');
 
             return response()->json([
@@ -60,6 +68,7 @@ class PostController extends Controller
     }
 
 
+
     public function store(Request $request)
     {
         try {
@@ -67,23 +76,33 @@ class PostController extends Controller
                 'title' => 'required|string|max:255',
                 'body' => 'required|string',
             ]);
+
+            $slug = Str::slug($validated['title']);
+
+            $existingPost = Post::where('slug', $slug)->first();
+            if ($existingPost) {
+                return response()->json([
+                    'message' => 'Slug already exists.',
+                    'error' => 'Duplicate slug'
+                ], 422);
+            }
+
             $post = Post::create([
                 'title' => $validated['title'],
                 'body' => $validated['body'],
                 'author_id' => auth('api')->user()->id,
+                'slug' => $slug,
             ]);
 
             return response()->json([
                 'message' => 'Post created successfully',
                 'data' => $post
             ], 201);
-
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An error occurred while creating the post',
@@ -92,30 +111,42 @@ class PostController extends Controller
         }
     }
 
+
     public function update(Request $request, Post $post)
     {
         try {
-
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'body' => 'required|string',
             ]);
+
+            $slug = Str::slug($validated['title']);
+
+            if ($slug !== $post->slug) {
+                $existingPost = Post::where('slug', $slug)->first();
+                if ($existingPost) {
+                    return response()->json([
+                        'message' => 'Slug already exists.',
+                        'error' => 'Duplicate slug'
+                    ], 422);
+                }
+            }
+
             $post->update([
                 'title' => $validated['title'],
                 'body' => $validated['body'],
+                'slug' => $slug,
             ]);
 
             return response()->json([
                 'message' => 'Post updated successfully',
                 'data' => $post
-            ],200);
-
+            ], 200);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An error occurred while updating the post',
@@ -124,6 +155,7 @@ class PostController extends Controller
         }
     }
 
+
     public function destroy(Post $post)
     {
         try {
@@ -131,7 +163,6 @@ class PostController extends Controller
             $post->delete();
 
             return response()->json(['message' => 'Post deleted successfully']);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An error occurred while deleting the post',
@@ -139,5 +170,4 @@ class PostController extends Controller
             ], 500);
         }
     }
-
 }
