@@ -4,13 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Post;
-use Dotenv\Exception\ValidationException;
+use App\Repositories\PostRepository;
+use App\Traits\MessageTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Validator;
 
 class PostController extends Controller
 {
+    use MessageTrait;
+
+    protected $postRepository;
+
+    public function __construct(PostRepository $postRepository)
+    {
+        $this->postRepository = $postRepository;
+    }
 
     public function index(Request $request)
     {
@@ -18,163 +26,87 @@ class PostController extends Controller
             $search = $request->input('search');
             $perPage = $request->input('per_page', 5);
 
-            $posts = Post::query();
+            $posts = $this->postRepository->getAllPosts($search, $perPage);
 
-            if ($search) {
-                $posts->where(function ($query) use ($search) {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('body', 'like', "%{$search}%");
-                });
-            }
-
-            $posts = $posts->with('author')
-                ->orderBy('created_at', 'desc')
-                ->paginate($perPage);
-
-            return response()->json([
-                'message' => 'Posts retrieved successfully',
-                'data' => $posts,
-                'current_page' => $posts->currentPage(),
-                'last_page' => $posts->lastPage(),
-                'per_page' => $posts->perPage(),
-                'total' => $posts->total(),
-
-            ]);
+            return $this->successMessage('Posts retrieved successfully', $posts->items(), $posts);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while retrieving posts',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while retrieving posts', $e->getMessage());
         }
     }
-
 
     public function show($slug)
     {
         try {
-            $post = Post::where('slug', $slug)->first();
+            $post = $this->postRepository->getPostBySlug($slug);
 
             if (!$post) {
-                return response()->json([
-                    'message' => 'Post not found',
-                ], 404);
+                return $this->errorMessage('Post not found', null, 404);
             }
 
-            $post->load('author');
+            $post->load(['author:id,name,email,email_verified_at,created_at,updated_at']);
 
-            return response()->json([
-                'message' => 'Post retrieved successfully',
-                'data' => $post
-            ]);
+            return $this->successMessage('Post retrieved successfully', $post);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while retrieving the post',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while retrieving the post', $e->getMessage());
         }
     }
-
-
 
     public function store(Request $request)
     {
         try {
-            $validated = $request->validate([
+            $validated = Validator::make($request->all(), [
                 'title' => 'required|string|max:255',
                 'body' => 'required|string',
             ]);
 
-            $slug = Str::slug($validated['title']);
-
-            $existingPost = Post::where('slug', $slug)->first();
-            if ($existingPost) {
-                return response()->json([
-                    'message' => 'Slug already exists.',
-                    'error' => 'Duplicate slug'
-                ], 422);
+            if ($validated->fails()) {
+                return $this->validationErrorMessage($validated->errors());
             }
 
-            $post = Post::create([
-                'title' => $validated['title'],
-                'body' => $validated['body'],
-                'author_id' => auth('api')->user()->id,
-                'slug' => $slug,
-            ]);
+            $post = $this->postRepository->createPost($validated->validated()['title'], $validated->validated()['body'], auth('api')->user()->id);
 
-            return response()->json([
-                'message' => 'Post created successfully',
-                'data' => $post
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+            if (!$post) {
+                return $this->errorMessage('Slug already exists.', 'Duplicate slug', 422);
+            }
+
+            return $this->successMessage('Post created successfully', $post);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while creating the post',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while creating the post', $e->getMessage());
         }
     }
-
 
     public function update(Request $request, Post $post)
     {
         try {
-            $validated = $request->validate([
+            $validated = Validator::make($request->all(), [
                 'title' => 'required|string|max:255',
                 'body' => 'required|string',
             ]);
 
-            $slug = Str::slug($validated['title']);
-
-            if ($slug !== $post->slug) {
-                $existingPost = Post::where('slug', $slug)->first();
-                if ($existingPost) {
-                    return response()->json([
-                        'message' => 'Slug already exists.',
-                        'error' => 'Duplicate slug'
-                    ], 422);
-                }
+            if ($validated->fails()) {
+                return $this->validationErrorMessage($validated->errors());
             }
 
-            $post->update([
-                'title' => $validated['title'],
-                'body' => $validated['body'],
-                'slug' => $slug,
-            ]);
+            $updatedPost = $this->postRepository->updatePost($post, $validated->validated()['title'], $validated->validated()['body']);
 
-            return response()->json([
-                'message' => 'Post updated successfully',
-                'data' => $post
-            ], 200);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+            if (!$updatedPost) {
+                return $this->errorMessage('Slug already exists.', 'Duplicate slug', 422);
+            }
+
+            return $this->successMessage('Post updated successfully', $updatedPost);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while updating the post',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while updating the post', $e->getMessage());
         }
     }
-
 
     public function destroy(Post $post)
     {
         try {
+            $this->postRepository->deletePost($post);
 
-            $post->delete();
-
-            return response()->json(['message' => 'Post deleted successfully']);
+            return $this->successMessage('Post deleted successfully');
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while deleting the post',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while deleting the post', $e->getMessage());
         }
     }
 }

@@ -1,123 +1,95 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Post;
-use Dotenv\Exception\ValidationException;
+use App\Repositories\CommentRepository;
+use App\Traits\MessageTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class CommentController extends Controller
 {
+    use MessageTrait;
+
+    protected $commentRepository;
+
+    public function __construct(CommentRepository $commentRepository)
+    {
+        $this->commentRepository = $commentRepository;
+    }
+
     public function index(Post $post)
     {
         try {
-            $comments = $post->comments()->with('author')->get();
-
-            return response()->json([
-                'message' => 'Comments retrieved successfully',
-                'data' => $comments
-            ]);
+            $comments = $this->commentRepository->getAllComments($post);
+            return $this->successMessage('Comments retrieved successfully', $comments);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while retrieving comments',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while retrieving comments', $e->getMessage());
         }
     }
 
     public function show(Comment $comment)
     {
         try {
-            $comment = Comment::with('author')->findOrFail($comment->id);
-
-            return response()->json([
-                'message' => 'Comment retrieved successfully',
-                'data' => $comment
-            ]);
+            $comment = $this->commentRepository->getCommentById($comment->id);
+            return $this->successMessage('Comment retrieved successfully', $comment);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while retrieving the comment',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while retrieving the comment', $e->getMessage());
         }
     }
-
 
     public function store(Request $request, Post $post)
     {
         try {
-            $validated = $request->validate([
+            $validated = Validator::make($request->all(), [
                 'body' => 'required|string|max:500',
             ]);
 
-            $comment = $post->comments()->create([
-                'body' => $validated['body'],
+            if ($validated->fails()) {
+                return $this->validationErrorMessage($validated->errors());
+            }
+
+            $comment = $this->commentRepository->createComment($post, [
+                'body' => $validated->validated()['body'],
                 'user_id' => auth('api')->user()->id,
             ]);
 
-            return response()->json([
-                'message' => 'Comment created successfully',
-                'data' => $comment
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+            return $this->successMessage('Comment created successfully', $comment);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while creating the comment',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while creating the comment', $e->getMessage());
         }
     }
 
     public function update(Request $request, Comment $comment)
     {
         try {
-
-            $validated = $request->validate([
+            $validated = Validator::make($request->all(), [
                 'body' => 'required|string|max:500',
             ]);
 
-            $comment->update([
-                'body' => $validated['body'],
+            if ($validated->fails()) {
+                return $this->validationErrorMessage($validated->errors());
+            }
+
+            $this->commentRepository->updateComment($comment, [
+                'body' => $validated->validated()['body'],
             ]);
 
-            return response()->json([
-                'message' => 'Comment updated successfully',
-                'data' => $comment
-            ], 200);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+            return $this->successMessage('Comment updated successfully', $comment);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while updating the comment',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while updating the comment', $e->getMessage());
         }
     }
 
     public function destroy(Comment $comment)
     {
         try {
-
-            $comment->delete();
-
-            return response()->json([
-                'message' => 'Comment deleted successfully'
-            ], 200);
+            $this->commentRepository->deleteComment($comment);
+            return $this->successMessage('Comment deleted successfully');
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while deleting the comment',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->errorMessage('An error occurred while deleting the comment', $e->getMessage());
         }
     }
 }
