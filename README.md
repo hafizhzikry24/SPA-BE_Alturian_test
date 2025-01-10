@@ -54,6 +54,7 @@ Run the Laravel migration command to create the necessary database tables for th
 
 ```bash
 php artisan migrate
+php artisan db:seed
 ```
 
 ### 6. Run the Application
