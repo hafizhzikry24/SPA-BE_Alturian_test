@@ -69,16 +69,39 @@ php artisan serve
 We adopted the Repository Pattern to keep business logic separate from the controller. This allows us to easily extend the application in the future without bloating the controllers. All database operations are handled by the repository layer, which makes the codebase more maintainable.
 2. Use of Traits for Reusable Response Logic
 The ResponseMessageTrait is used to standardize the structure of API responses across the application. This ensures that all responses, whether successful or erroneous, follow a consistent format, making it easier to handle on the frontend.
-3. JWT for API Authentication
-We are using Laravel Sanctum for API authentication, which is a simple and lightweight solution for token-based authentication. This is particularly suited for SPAs (Single Page Applications) and mobile applications.
-4. Paginated Responses
+3. Paginated Responses
 Pagination has been implemented for posts and comments to avoid performance issues when dealing with large datasets. The API returns paginated data along with metadata (current page, total pages, etc.) to help the frontend display the data accordingly.
-5. Input Validation
+4. Input Validation
 Input validation is done using Laravel's Validator class, ensuring that all data received via API requests is well-formed and meets the necessary constraints. This reduces the risk of errors and malicious data being saved into the database.
-6. Error Handling
+5. Error Handling
 Error handling is done in a centralized manner using a custom trait (ResponseMessageTrait). This makes the code cleaner and ensures that error messages are returned consistently in the same format.
-7. Security Considerations
+6. Security Considerations
 Passwords are hashed using bcrypt (Laravel's default) before storing them in the database.
 API endpoints that require authentication are protected by token validation (via Laravel Sanctum).
 Input sanitization and validation are implemented to prevent SQL injection and other forms of malicious input.
 
+## Advanced Features and Optimizations
+One of the key features implemented in this project is the addition of slugs for posts, which helps enhance the SEO (Search Engine Optimization). By generating a human-readable, SEO-friendly URL slug based on the post's title, it improves the visibility of content in search engines. The slug is automatically created when a new post is added or updated, ensuring that it remains unique and relevant to the content.
+
+Additionally, the system checks for duplicate slugs during both creation and updating to avoid conflicts, ensuring that URLs are clean and optimized for search engines.
+
+This feature not only enhances SEO but also improves user experience by providing easily readable URLs that reflect the content of the post.
+
+
+## Assumptions, Challenges, and Solutions
+### Assumptions
+1. API Authentication: It was assumed that the application would use token-based authentication (JWT or Passport) for securing the API. This assumption guided the use of auth('api') for user identification and authorization.
+2. Data Validation: The system assumes that all input data (e.g., post titles, comment bodies) is validated on the backend to ensure data integrity and prevent SQL injection or other malicious inputs.
+
+### Challenges and Solutions
+1. Error Handling in API Responses:
+
+Challenge: Providing consistent error responses with proper HTTP status codes and meaningful messages was a challenge, especially when handling unexpected exceptions.
+
+Solution: The implementation of traits (such as ApiResponseTrait) helped standardize success and error messages. A centralized error handling mechanism was set up, ensuring that the API returns consistent responses with appropriate status codes (e.g., 404 for not found, 500 for server errors).
+
+2. Authentication and Authorization:
+
+Challenge: Handling user authentication and ensuring that only authorized users could perform specific actions (e.g., posting, updating, deleting) was critical.
+
+Solution: The use of Laravel Sanctum tokens was integrated into the application to ensure secure and authenticated access. Middleware was applied to protect certain routes, ensuring only logged-in users can create, update, or delete posts and comments.
