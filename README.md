@@ -105,3 +105,66 @@ Solution: The implementation of traits (such as ApiResponseTrait) helped standar
 Challenge: Handling user authentication and ensuring that only authorized users could perform specific actions (e.g., posting, updating, deleting) was critical.
 
 Solution: The use of Laravel Sanctum tokens was integrated into the application to ensure secure and authenticated access. Middleware was applied to protect certain routes, ensuring only logged-in users can create, update, or delete posts and comments.
+
+
+## API ENDPOINTS
+
+### All POST
+- Path : `/posts` 
+- Method: `GET`
+- Response: `200`
+
+### Pagination & limit POST
+- Path : `/posts?page=1&limit=` 
+- Method: `GET`
+- Response: `200`
+
+### Search POST
+- Path : `/posts/search?name=sasuke` 
+- Method: `GET`
+- Response: `200`
+
+### Create Post
+- Path : `/posts` 
+- Method: `POST`
+- Response: `201`
+
+### Details a POST
+- Path : `/posts/{slug}` 
+- Method: `GET`
+- Response: `200`
+
+### Update POST
+- Path : `/posts/{id}` 
+- Method: `PUT`
+- Response: `200`
+
+### Delete POST
+- Path :  `/posts/{id}`
+- Method: `DELETE`
+- Response: `200`
+
+### All Comments
+- Path : `/posts/{post_id}/comments` 
+- Method: `GET`
+- Response: `200`
+
+### Create Comments
+- Path : `/posts/{post_id}/comments` 
+- Method: `Comments`
+- Response: `201`
+
+### Details a Comments
+- Path : `/comments/{id}` 
+- Method: `GET`
+- Response: `200`
+
+### Update Comments
+- Path : `/comments/{id}` 
+- Method: `PUT`
+- Response: `200`
+
+### Delete Comments
+- Path :  `/comments/{id}`
+- Method: `DELETE`
+- Response: `200`
